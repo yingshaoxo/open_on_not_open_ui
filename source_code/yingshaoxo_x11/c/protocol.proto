@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+service open_on_not_open_ui_service {
+    rpc upload_picture (Upload_Picture_Request) returns (Upload_Picture_Response);
+    rpc get_input (Get_Input_Request) returns (Get_Input_Response);
+}
+
+message Upload_Picture_Request {
+    // similar to normal yingshaoxo image text format
+    // write this to a current folder file called './image_buffer.txt' when that file does not have any text inside
+    string image_text = 1;
+}
+
+message Upload_Picture_Response {
+    // ok or error
+    string status = 1;
+}
+
+message Get_Input_Request {
+}
+
+message Get_Input_Response {
+    // a list of data
+
+    // "a", "A", "c", "C", "+"
+    string ascii_code = 1;
+    // 1 for left_click, 3 for right_click
+    string button_code = 2;
+    // (y,x) will have value when mouse move
+    string point_y = 3;
+    string point_x = 4;
+
+    string height = 5;
+    string width = 6;
+
+    // one click moving is scoll, two click no moving is click, one long click is right_click 
+
+    // the ui program will write information to a current folder file called './input_info.txt' when that file does not have any text inside
+}
+
+// This method use a lot of disk, so use a usb storage to protect your disk.
