@@ -3,6 +3,7 @@ syntax = "proto3";
 service open_on_not_open_ui_service {
     rpc download_picture (Download_Picture_Request) returns (Download_Picture_Response);
     rpc handle_input (Handle_Input_Request) returns (Handle_Input_Response);
+    rpc upload_picture (Upload_Picture_Request) returns (Upload_Picture_Response);
 }
 
 message Download_Picture_Request {
@@ -29,6 +30,16 @@ message Handle_Input_Request {
 }
 
 message Handle_Input_Response {
+    // ok or error
+    string result = 1;
+}
+
+message Upload_Picture_Request {
+    // bgra pixel 4 int from left to right, top to bottom, a bytes list, but converted to hex string
+    string image_text = 1;
+}
+
+message Upload_Picture_Response {
     // ok or error
     string result = 1;
 }

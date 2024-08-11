@@ -14,25 +14,31 @@ from multiprocessing import Manager
 #    url: str
 #    url_arguments: dict[str, str]
 #    headers: dict[str, str]
-#    payload: str | None
+#    payload: Any | None
+
+manager = Manager()
+window_size_list = manager.list([320, 240])
+# the image resize or pixel iteration in python is 60 times slower than c version, so don't use it as much as possible
+display_image_string_list = manager.list([None])
 
 image_list = []
 for name in ["water.png", "hero.png"]:
-    image_list.append(a_image.read_image_from_file("/home/yingshaoxo/Downloads/" + name).copy())
-
-manager = Manager()
-window_size_list = manager.list([60, 80])
+    image_list.append(a_image.read_image_from_file("/home/yingshaoxo/Downloads/" + name).copy().resize(window_size_list[0], window_size_list[1]))
 
 def home_handler(request: Yingshaoxo_Http_Request):
     return "Hello, world, fight for personal freedom."
 
 def download_picture(request: Yingshaoxo_Http_Request):
-    global a_image, window_size_list
+    global a_image, window_size_list, display_image_string_list
     # if you return a dict, will return a json, but here we do not need to return a json, a pure string is fine
-    index = int(int(time.time()) % 2)
-    height, width = window_size_list
-    print(height, width)
-    return image_list[index].resize(height, width).save_image_as_string()
+    if display_image_string_list[0] == None:
+        index = int(int(time.time()) % 2)
+        height, width = window_size_list
+        print(height, width)
+        image_string = image_list[index].resize(height, width).save_image_as_string(bgra=True)
+        return image_string
+    else:
+        return display_image_string_list[0]
 
 def handle_input(request: Yingshaoxo_Http_Request):
     global window_size_list
@@ -46,9 +52,18 @@ def handle_input(request: Yingshaoxo_Http_Request):
     window_size_list[1] = int(a_dict["width"])
     return ""
 
+def upload_picture(request: Yingshaoxo_Http_Request):
+    global display_image_string_list
+    a_data = request.payload
+    #print(type(a_data))
+    #print("got picture length: ", len(a_data))
+    display_image_string_list[0] = a_data
+    return ""
+
 router = [
     [r"/download_picture", download_picture],
     [r"/handle_input", handle_input],
+    [r"/upload_picture", upload_picture],
     [r"(.*)", home_handler]
 ]
 

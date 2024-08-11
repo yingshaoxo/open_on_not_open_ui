@@ -30,6 +30,7 @@ from threading import Thread
 from time import sleep, time
 input_data_queue = Queue(1)
 stop_signal_queue = Queue(1)
+heart_signal_queue = Queue(1)
 
 import ctypes
 
@@ -267,36 +268,64 @@ def send_input_data_to_http_service(input_data_queue):
         except Exception as e:
             print(e)
 
+def if_main_process_done_close_all_process_service(heart_signal_queue, stop_signal_queue, process_list):
+    while True:
+        try:
+            heart_signal_queue.get(timeout=10) # get heart signal or quit
+        except Exception as e:
+            #print(e)
+            stop_signal_queue.put(True)
+            for process in process_list:
+                try:
+                    process.kill()
+                except Exception as e:
+                    pass
+            return
+        sleep(1)
+
 get_input_process = Thread(target=get_input_data_loop, args=(stop_signal_queue,))
+get_input_process.daemon = True
 get_input_process.start()
 
 send_input_process = Process(target=send_input_data_to_http_service, args=(input_data_queue,))
 send_input_process.start()
 
+process_list = [get_input_process, send_input_process]
+
+heart_process = Process(target=if_main_process_done_close_all_process_service, args=(heart_signal_queue, stop_signal_queue, process_list))
+heart_process.start()
+
 #global_image_data = bytes([0 for one in range(height*width*4)]) # not work, for unknown reason
 global_image_data = get_image_data()
+data_length = height*width*4
+example_data = bytes([0] * data_length)
 while stop_signal_queue.empty():
     try:
         start_time = time()
         response = yingshaoxo_http_client.post(target_url+"download_picture", "")
         if "," in response:
             # we got picture
-            a_image = a_image.read_image_from_string(response)
-            image_height, image_width = a_image.get_shape()
-            global_image_data = convert_image_to_image_data(a_image)
-            show_image_data(global_image_data, image_height, image_width)
+            response = response.split(",")[2]
+            data = bytes().fromhex(response)
+            global_image_data = data + example_data[0:data_length - len(data)]
+            show_image_data(global_image_data, height, width)
             end_time = time()
             time_use_in_milliseconds = round((end_time - start_time)*1000)
-            #print("time use in milliseconds:", time_use_in_milliseconds)
             print("fps:", round(1000/time_use_in_milliseconds))
             if time_use_in_milliseconds < 40:
                 sleep((40-time_use_in_milliseconds)/1000)
+        else:
+            sleep(0.5)
     except Exception as e:
         print(e)
+    heart_signal_queue.put(True)
 
-try:
-    send_input_process.kill()
-except Exception as e:
-    print(e)
+process_list.append(heart_process)
+for a_process in process_list:
+    try:
+        if a_process.is_alive():
+            a_process.kill()
+    except Exception as e:
+        print(e)
 
 exit()
