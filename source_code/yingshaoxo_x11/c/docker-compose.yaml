@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  compiler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    security_opt:
+      - seccomp:unconfined
+    command: sh -c "cd /app && gcc -Wall -O2 -static -fno-lto -o window.run a_window.c -lX11 -pthread -lxcb -lXau -lXdmcp"

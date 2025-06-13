@@ -1,3 +1,3 @@
-#sudo apt install libx11-dev
-gcc a_window.c -o window.run -lX11
-# We can't staticlly link x11?
+#!/bin/bash
+
+gcc -Wall -O2 -o window.run a_window.c -lX11 -pthread
